@@ -1,0 +1,10 @@
+import { loadEnvFile } from 'node:process';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { createApp } from './src/app.js';
+const envFile=fileURLToPath(new URL('./.env',import.meta.url));if(existsSync(envFile))loadEnvFile(envFile);
+const port=Number(process.env.PORT||3000),host=process.env.HOST||'127.0.0.1';
+const {app,db}=createApp({tmdbToken:process.env.TMDB_READ_TOKEN||'',production:process.env.NODE_ENV==='production'});
+const server=app.listen(port,host,()=>{console.log(`CineFinder disponible en http://localhost:${port}`);console.log(process.env.TMDB_READ_TOKEN?'TMDB configurado: consulta de películas en vivo.':'Modo de muestra. Agrega TMDB_READ_TOKEN en .env para activar la API.');});
+server.on('error',err=>{console.error(err.code==='EADDRINUSE'?`El puerto ${port} está ocupado. Cambia PORT en .env.`:'No se pudo iniciar el servidor.');process.exitCode=1;db.close();});
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{server.close(()=>{db.close();process.exit(0);});});
